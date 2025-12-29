@@ -364,7 +364,6 @@ for idx, row in your_data.iterrows():
 ### Variable Importance Reference
 
 See [VARIABLE_GUIDE.md](VARIABLE_GUIDE.md) for detailed explanations of what each variable means, how it's measured, and its clinical significance
-```
 
 ## 📊 Dataset
 
@@ -593,7 +592,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 **Sidharth Anand**
 
 - GitHub: [@SidharthAnand04](https://github.com/SidharthAnand04)
-- Email: [your.email@example.com]
+- Email: sid@sidharthanand.com
 
 ## 🙏 Acknowledgments
 
@@ -606,7 +605,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 For questions, issues, or collaborations:
 
 - Open an issue on [GitHub](https://github.com/SidharthAnand04/penile-carcinoma-outcome-prediction/issues)
-- Email: [your.email@example.com]
+- Email: sid@sidharthanand.com
 
 ---
 
