@@ -57,13 +57,11 @@ class PenileSCCRAG:
         
         return chunks
     
-    def call_openrouter(self, system_prompt, user_message, temperature=0.7, max_tokens=1024, request_id=None):
-        """Call OpenRouter API with proper headers and request tracking."""
+    def call_openrouter(self, system_prompt, user_message, temperature=0.7, max_tokens=1024):
+        """Call OpenRouter API with proper headers. Debug logs payload and error response."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            # Add a custom header to identify the request source/location
-            "X-Request-Source": f"rag.py:call_openrouter{f'|id={request_id}' if request_id else ''}"
         }
         if self.site_url:
             headers["HTTP-Referer"] = self.site_url
@@ -78,6 +76,11 @@ class PenileSCCRAG:
                 {"role": "user", "content": user_message}
             ]
         }
+        # Debug: print payload and headers
+        print("\n[OpenRouter DEBUG] Request payload:")
+        print(json.dumps(payload, indent=2))
+        print("[OpenRouter DEBUG] Request headers:")
+        print(json.dumps(headers, indent=2))
         try:
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -85,13 +88,22 @@ class PenileSCCRAG:
                 json=payload,
                 timeout=30
             )
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except requests.HTTPError as http_err:
+                # Print error response body
+                print("[OpenRouter DEBUG] Error response body:")
+                try:
+                    print(response.text)
+                except Exception:
+                    print("[OpenRouter DEBUG] Could not print error response body.")
+                raise RuntimeError(f"OpenRouter API error: {response.status_code} {response.reason}") from http_err
             result = response.json()
             return result["choices"][0]["message"]["content"]
         except Exception as e:
             raise RuntimeError(f"OpenRouter API error: {e}")
     
-    def answer_question(self, query, audience="family", depth="quick", request_id=None):
+    def answer_question(self, query, audience="family", depth="quick"):
         """Generate RAG answer with citations."""
         # Retrieve
         chunks = self.retrieve(query, k=7)
@@ -137,8 +149,7 @@ class PenileSCCRAG:
             system_prompt=system_prompt,
             user_message=user_message,
             temperature=0.5,
-            max_tokens=2048,
-            request_id=request_id
+            max_tokens=2048
         )
         
         return {
