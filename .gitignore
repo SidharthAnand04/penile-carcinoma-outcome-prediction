@@ -47,6 +47,12 @@ notebooks/.ipynb_checkpoints/
 # models/*.pkl
 # !models/.gitkeep
 
+# RAG / Vector DB
+rag/__pycache__/
+rag/data/chroma/
+rag/.env
+rag/.streamlit/secrets.toml
+
 # OS
 .DS_Store
 Thumbs.db
@@ -61,3 +67,7 @@ Thumbs.db
 *.tmp
 *.bak
 *.cache
+
+
+
+.*
