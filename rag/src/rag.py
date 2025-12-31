@@ -1,6 +1,7 @@
 """RAG pipeline: retrieve chunks and call OpenRouter LLM."""
 
 import os
+import streamlit as st
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
 import requests
@@ -28,14 +29,13 @@ class PenileSCCRAG:
                 "ChromaDB collection not found. Run: python -m src.ingest"
             )
         
-        # OpenRouter settings
-        self.api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
-        self.model = os.getenv("OPENROUTER_MODEL", "openrouter/auto")
-        self.site_url = os.getenv("OPENROUTER_SITE_URL", "").strip()
-        self.app_name = os.getenv("OPENROUTER_APP_NAME", "").strip()
-        
+        # OpenRouter settings (use st.secrets for Streamlit Cloud)
+        self.api_key = st.secrets.get("OPENROUTER_API_KEY", os.getenv("OPENROUTER_API_KEY", "")).strip()
+        self.model = st.secrets.get("OPENROUTER_MODEL", os.getenv("OPENROUTER_MODEL", "openrouter/auto"))
+        self.site_url = st.secrets.get("OPENROUTER_SITE_URL", os.getenv("OPENROUTER_SITE_URL", "")).strip()
+        self.app_name = st.secrets.get("OPENROUTER_APP_NAME", os.getenv("OPENROUTER_APP_NAME", "")).strip()
         if not self.api_key:
-            raise RuntimeError("OPENROUTER_API_KEY not set in .env")
+            raise RuntimeError("OPENROUTER_API_KEY not set in secrets or .env")
 
     
     def retrieve(self, query, k=7):
