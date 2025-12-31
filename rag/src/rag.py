@@ -3,25 +3,22 @@
 import os
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
-import chromadb
 import requests
 import json
+
+from src.db import get_collection
 
 
 class PenileSCCRAG:
     def __init__(self):
         self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
         
-        # Load ChromaDB
-        chroma_dir = Path("data/chroma")
-        if not chroma_dir.exists():
+        # Get shared collection
+        self.collection = get_collection()
+        if self.collection is None:
             raise RuntimeError(
-                f"ChromaDB not found. Run: python -m src.ingest"
+                "ChromaDB collection not found. Run: python -m src.ingest"
             )
-        
-        self.client = chromadb.Client()
-        
-        self.collection = self.client.get_collection(name="penile_scc")
         
         # OpenRouter settings
         self.api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
@@ -31,6 +28,7 @@ class PenileSCCRAG:
         
         if not self.api_key:
             raise RuntimeError("OPENROUTER_API_KEY not set in .env")
+
     
     def retrieve(self, query, k=7):
         """Retrieve top-k relevant chunks."""

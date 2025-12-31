@@ -4,6 +4,20 @@ import streamlit as st
 from pathlib import Path
 from src.rag import PenileSCCRAG
 from src.safety import check_safety, get_safe_redirect
+from src.db import get_collection
+
+# Initialize ingest on first load
+@st.cache_resource
+def initialize_rag():
+    """Initialize RAG system on app startup."""
+    # Check if data exists, if not ingest
+    collection = get_collection()
+    if collection is None:
+        from src.ingest import ingest_sources
+        ingest_sources()
+    
+    # Initialize RAG
+    return PenileSCCRAG()
 
 # Page config
 st.set_page_config(
@@ -53,19 +67,20 @@ Every answer includes citations to sources.
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "rag" not in st.session_state:
-    try:
-        st.session_state.rag = PenileSCCRAG()
-        st.session_state.rag_ready = True
-    except Exception as e:
-        st.session_state.rag_ready = False
-        st.session_state.rag_error = str(e)
+# Initialize RAG with auto-ingest fallback
+try:
+    rag = initialize_rag()
+    rag_ready = True
+    rag_error = None
+except Exception as e:
+    rag_ready = False
+    rag_error = str(e)
 
 # Check if RAG is ready
-if not st.session_state.rag_ready:
+if not rag_ready:
     st.error(
-        f"**RAG System Not Ready**\n\n{st.session_state.rag_error}\n\n"
-        "Please run: `python -m src.ingest` in the rag folder"
+        f"**RAG System Error**\n\n{rag_error}\n\n"
+        "Please check your setup. Run: `python -m src.ingest` manually if needed."
     )
 else:
     # Display chat history
@@ -102,14 +117,17 @@ else:
             
             # Generate answer
             with st.spinner("Retrieving information and generating answer..."):
-                result = st.session_state.rag.answer_question(
-                    query=user_input,
-                    audience=audience,
-                    depth=depth
-                )
+                try:
+                    result = rag.answer_question(
+                        query=user_input,
+                        audience=audience,
+                        depth=depth
+                    )
+                    answer = result["answer"]
+                except Exception as e:
+                    answer = f"**Error generating answer:** {str(e)}"
             
             # Display answer
-            answer = result["answer"]
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": answer

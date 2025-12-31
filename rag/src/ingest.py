@@ -3,9 +3,9 @@
 import json
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
-import chromadb
 
 from src.split import chunk_text
+from src.db import get_client, ensure_collection_exists
 
 
 # Sample educational content about penile SCC for MVP
@@ -88,20 +88,14 @@ SAMPLE_CONTENT = {
 
 
 def ingest_sources():
-    """Ingest sample content into ChromaDB."""
+    """Ingest sample content into ChromaDB with persistence."""
     # Initialize embedder
     print("Loading embedding model...")
     embedder = SentenceTransformer('all-MiniLM-L6-v2')
     
-    # Initialize ChromaDB
-    chroma_dir = Path("data/chroma")
-    chroma_dir.mkdir(parents=True, exist_ok=True)
-    
-    client = chromadb.Client()
-    
-    collection = client.get_or_create_collection(
-        name="penile_scc"
-    )
+    # Get shared client and ensure collection
+    client = get_client()
+    collection = ensure_collection_exists()
     
     logs = []
     all_embeddings = []
@@ -169,6 +163,8 @@ def ingest_sources():
     ok_count = sum(1 for l in logs if l['status'] == 'OK')
     print(f"✓ Successfully ingested {ok_count}/{len(SAMPLE_CONTENT)} documents")
     print("\n→ Ready! Run: streamlit run app.py")
+
+
 
 
 if __name__ == "__main__":
