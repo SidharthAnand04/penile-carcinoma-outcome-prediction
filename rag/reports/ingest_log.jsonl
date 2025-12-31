@@ -1,8 +1,10 @@
-{"url": "penile-cancer-basics", "status": "OK", "reason": null}
-{"url": "staging-system", "status": "OK", "reason": null}
-{"url": "symptoms-diagnosis", "status": "OK", "reason": null}
-{"url": "treatment-options", "status": "OK", "reason": null}
-{"url": "lymph-node-metastasis", "status": "OK", "reason": null}
-{"url": "survival-prognosis", "status": "OK", "reason": null}
-{"url": "patient-support", "status": "OK", "reason": null}
-{"url": "questions-for-doctor", "status": "OK", "reason": null}
+{"url": "https://www.cancer.gov/types/penile/patient/penile-treatment-pdq", "status": "OK", "reason": null}
+{"url": "https://www.cancer.gov/types/penile/hp/penile-treatment-pdq", "status": "OK", "reason": null}
+{"url": "https://www.cancer.gov/types/penile", "status": "OK", "reason": null}
+{"url": "https://www.cancer.org/cancer/types/penile-cancer/detection-diagnosis-staging.html", "status": "OK", "reason": null}
+{"url": "https://www.cancer.org/cancer/types/penile-cancer/detection-diagnosis-staging/signs-symptoms.html", "status": "OK", "reason": null}
+{"url": "https://uroweb.org/guidelines/penile-cancer", "status": "OK", "reason": null}
+{"url": "https://uroweb.org/guidelines/penile-cancer/chapter/disease-management", "status": "OK", "reason": null}
+{"url": "https://www.cancerresearchuk.org/about-cancer/penile-cancer/stages-types-grades/tnm-staging", "status": "OK", "reason": null}
+{"url": "https://www.oncolink.org/cancers/penile-cancer/penile-cancer-staging-and-treatment", "status": "SKIP", "reason": "HTTP 403"}
+{"url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4747879/", "status": "SKIP", "reason": "HTTP 403"}

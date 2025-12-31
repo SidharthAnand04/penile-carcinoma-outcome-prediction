@@ -85,26 +85,44 @@ if not rag_ready:
 else:
     # Display chat history
     st.subheader("Chat History")
-    for msg in st.session_state.messages:
+    chat_anchor = st.empty()
+    for idx, msg in enumerate(st.session_state.messages):
         if msg["role"] == "user":
             with st.chat_message("user"):
                 st.write(msg["content"])
         else:
             with st.chat_message("assistant"):
                 st.write(msg["content"])
-    
-    # Input
+                # Show sources for this assistant message if present
+                if "sources" in msg and msg["sources"]:
+                    with st.expander("📖 Retrieved Sources (Evidence)", expanded=False):
+                        for i, chunk in enumerate(msg["sources"], 1):
+                            st.markdown(f"**[{i}] {chunk['metadata']['source']}**")
+                            st.markdown(f"*Chunk {chunk['metadata']['chunk_index']}*")
+                            st.text(chunk["text"][:300] + "...")
+        # Place an anchor at the end of the last message for autoscroll
+        if idx == len(st.session_state.messages) - 1:
+            chat_anchor.markdown("<div id='chat-bottom'></div>", unsafe_allow_html=True)
+
+
+    # Input with submit button to avoid infinite loop
     st.subheader("Ask a Question")
-    user_input = st.text_input(
-        "What would you like to know about penile cancer?",
-        placeholder="e.g., What are the symptoms? How is penile cancer staged?",
-        key="user_input"
-    )
-    
-    if user_input:
+    if "input_value" not in st.session_state:
+        st.session_state.input_value = ""
+    with st.form(key="user_input_form", clear_on_submit=True):
+        user_input = st.text_input(
+            "What would you like to know about penile cancer?",
+            value=st.session_state.input_value,
+            placeholder="e.g., What are the symptoms? How is penile cancer staged?",
+            key="user_input_box"
+        )
+        submitted = st.form_submit_button("Send")
+
+
+    if submitted and user_input:
         # Safety check
         is_safe, reason = check_safety(user_input)
-        
+
         if not is_safe:
             st.error(f"**Cannot answer:** {reason}")
             st.info(f"**Suggestion:** {get_safe_redirect(user_input)}")
@@ -114,7 +132,7 @@ else:
                 "role": "user",
                 "content": user_input
             })
-            
+
             # Generate answer
             with st.spinner("Retrieving information and generating answer..."):
                 try:
@@ -124,24 +142,28 @@ else:
                         depth=depth
                     )
                     answer = result["answer"]
+                    sources = result["chunks"]
                 except Exception as e:
                     answer = f"**Error generating answer:** {str(e)}"
-            
-            # Display answer
+                    sources = []
+
+            # Display answer and store sources with message
             st.session_state.messages.append({
                 "role": "assistant",
-                "content": answer
+                "content": answer,
+                "sources": sources
             })
-            
-            with st.chat_message("assistant"):
-                st.write(answer)
-            
-            # Show sources
-            with st.expander("📖 Retrieved Sources (Evidence)"):
-                for i, chunk in enumerate(result["chunks"], 1):
-                    st.markdown(f"**[{i}] {chunk['metadata']['source']}**")
-                    st.markdown(f"*Chunk {chunk['metadata']['chunk_index']}*")
-                    st.text(chunk["text"][:300] + "...")
-            
-            # Clear input
+
+            # Clear input value in session state
+            st.session_state.input_value = ""
             st.rerun()
+
+    # (No global sources box; now shown per message)
+
+    # Autoscroll to bottom using anchor and JS
+    st.markdown("""
+        <script>
+        var chatBottom = document.getElementById('chat-bottom');
+        if (chatBottom) { chatBottom.scrollIntoView({behavior: 'smooth'}); }
+        </script>
+    """, unsafe_allow_html=True)

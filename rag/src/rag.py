@@ -5,8 +5,16 @@ from pathlib import Path
 from sentence_transformers import SentenceTransformer
 import requests
 import json
+import dotenv
 
 from src.db import get_collection
+
+
+def load_dotenv():
+    dotenv_path = Path(__file__).parent.parent / ".env"
+    dotenv.load_dotenv(dotenv_path)
+
+load_dotenv()
 
 
 class PenileSCCRAG:
@@ -107,20 +115,21 @@ class PenileSCCRAG:
         depth_note = "Keep answer concise (2-3 sentences)." if depth == "quick" else "Provide thorough explanation with context."
         
         system_prompt = f"""You are an educational assistant about penile cancer. Answer based ONLY on the provided sources.
-        
-Audience: {audience} ({audience_note})
-Depth: {depth} ({depth_note})
 
-Rules:
-- Every statement must cite sources using [1], [2], etc. matching the context numbers
-- If information is insufficient, say so clearly
-- End with 3-7 "Questions to ask your doctor" bullets
-- Include a "Sources:" section with numbered URLs
-- NEVER give personal medical advice
-- Be educational and grounded
+    Audience: {audience} ({audience_note})
+    Depth: {depth} ({depth_note})
 
-Context (numbered sources):
-{context}"""
+    Rules:
+    - Every statement must cite sources using [1], [2], etc. matching the context numbers
+    - The numbered sources and URLs you use MUST be real and come ONLY from the provided context below. Do NOT make up or hallucinate any sources or links.
+    - Do NOT output a "Sources:" section. The user interface will show the real sources separately.
+    - If information is insufficient, say so clearly
+    - End with 3-7 "Questions to ask your doctor" bullets
+    - NEVER give personal medical advice
+    - Be educational and grounded
+
+    Context (numbered sources, each with a real URL):
+    {context}"""
         
         user_message = f"Question: {query}"
         
@@ -129,7 +138,7 @@ Context (numbered sources):
             system_prompt=system_prompt,
             user_message=user_message,
             temperature=0.5,
-            max_tokens=1024
+            max_tokens=2048
         )
         
         return {

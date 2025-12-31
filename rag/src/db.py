@@ -11,7 +11,9 @@ def get_client():
     """Get or create ChromaDB client."""
     global _client
     if _client is None:
-        _client = chromadb.EphemeralClient()
+        from chromadb.config import Settings
+        # Use persistent storage for ChromaDB (ChromaDB 0.3.x)
+        _client = chromadb.Client(Settings(persist_directory="rag/chroma_db"))
     return _client
 
 
