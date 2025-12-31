@@ -58,15 +58,17 @@ class PenileSCCRAG:
         return chunks
     
     def call_openrouter(self, system_prompt, user_message, temperature=0.7, max_tokens=1024):
-        """Call OpenRouter API with proper headers. Debug logs payload and error response."""
+        """Call OpenRouter API with proper headers."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
+        
         if self.site_url:
             headers["HTTP-Referer"] = self.site_url
         if self.app_name:
             headers["X-Title"] = self.app_name
+        
         payload = {
             "model": self.model,
             "temperature": temperature,
@@ -76,11 +78,7 @@ class PenileSCCRAG:
                 {"role": "user", "content": user_message}
             ]
         }
-        # Debug: print payload and headers
-        print("\n[OpenRouter DEBUG] Request payload:")
-        print(json.dumps(payload, indent=2))
-        print("[OpenRouter DEBUG] Request headers:")
-        print(json.dumps(headers, indent=2))
+        
         try:
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -88,16 +86,7 @@ class PenileSCCRAG:
                 json=payload,
                 timeout=30
             )
-            try:
-                response.raise_for_status()
-            except requests.HTTPError as http_err:
-                # Print error response body
-                print("[OpenRouter DEBUG] Error response body:")
-                try:
-                    print(response.text)
-                except Exception:
-                    print("[OpenRouter DEBUG] Could not print error response body.")
-                raise RuntimeError(f"OpenRouter API error: {response.status_code} {response.reason}") from http_err
+            response.raise_for_status()
             result = response.json()
             return result["choices"][0]["message"]["content"]
         except Exception as e:
