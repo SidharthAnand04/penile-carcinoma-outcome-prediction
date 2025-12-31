@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
 import chromadb
-from chromadb.config import Settings
 import requests
 import json
 
@@ -17,14 +16,10 @@ class PenileSCCRAG:
         chroma_dir = Path("data/chroma")
         if not chroma_dir.exists():
             raise RuntimeError(
-                f"ChromaDB not found at {chroma_dir}. Run: python -m src.ingest"
+                f"ChromaDB not found. Run: python -m src.ingest"
             )
         
-        self.client = chromadb.Client(Settings(
-            chroma_db_impl="duckdb_parquet",
-            persist_directory=str(chroma_dir),
-            anonymized_telemetry=False,
-        ))
+        self.client = chromadb.Client()
         
         self.collection = self.client.get_collection(name="penile_scc")
         

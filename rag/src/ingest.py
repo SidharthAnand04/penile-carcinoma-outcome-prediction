@@ -1,59 +1,94 @@
-"""Ingestion pipeline: fetch URLs, chunk, embed, and store in ChromaDB."""
+"""Ingestion pipeline with sample penile SCC content for MVP."""
 
-import os
 import json
-import requests
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
 import chromadb
-from chromadb.config import Settings
 
 from src.split import chunk_text
 
 
-def fetch_url_content(url, timeout=15):
-    """Fetch and extract text from a URL."""
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
+# Sample educational content about penile SCC for MVP
+SAMPLE_CONTENT = {
+    "penile-cancer-basics": """
+    Penile cancer is a rare cancer that develops on the skin and tissues of the penis. 
+    The most common type is squamous cell carcinoma, accounting for about 95% of cases.
+    Risk factors include HPV infection, smoking, phimosis (tight foreskin), and poor hygiene.
+    Early detection through self-examination and regular medical check-ups is important for better outcomes.
+    """,
     
-    try:
-        response = requests.get(url, headers=headers, timeout=timeout)
-        response.raise_for_status()
-        
-        # Try trafilatura first
-        try:
-            import trafilatura
-            content = trafilatura.extract(response.text)
-            if content:
-                return content
-        except (ImportError, Exception):
-            pass
-        
-        # Fallback: simple text extraction
-        import re
-        text = response.text
-        text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.DOTALL)
-        text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)
-        text = re.sub(r'<[^>]+>', '', text)
-        text = re.sub(r'\s+', ' ', text)
-        text = text.strip()
-        
-        return text if text else None
+    "staging-system": """
+    Penile cancer is staged using the TNM system:
+    T-stage describes the size and extent of the primary tumor.
+    N-stage refers to regional lymph node involvement (N0=none, N1=1-2 nodes, N2=3+ nodes, N3=fixed nodes).
+    M-stage indicates distant metastasis.
+    The lymph node status is the most important prognostic factor in penile cancer.
+    """,
     
-    except Exception as e:
-        return None
+    "symptoms-diagnosis": """
+    Common symptoms include a lump, ulcer, or bleeding on the penis, and discharge.
+    Diagnosis typically involves physical examination and biopsy of suspicious lesions.
+    Imaging like CT or MRI may be used to assess local spread and lymph node involvement.
+    Early-stage disease often has excellent prognosis when treated promptly.
+    """,
+    
+    "treatment-options": """
+    Treatment depends on stage and grade. Options include:
+    - Topical therapy (imiquimod, fluorouracil) for early superficial lesions
+    - Circumcision and excisional biopsy for localized disease
+    - Laser therapy or Mohs micrographic surgery for organ preservation
+    - Partial or total penectomy for advanced tumors
+    - Lymphadenectomy (removal of lymph nodes) if metastasis is suspected
+    - Chemotherapy for advanced/metastatic disease
+    Multidisciplinary team approach ensures optimal outcomes.
+    """,
+    
+    "lymph-node-metastasis": """
+    Lymph node involvement is the single most important prognostic factor in penile cancer.
+    The inguinal lymph nodes are the first site of regional spread.
+    Predictive features for lymph node metastasis include:
+    - Higher tumor grade (G3-G4)
+    - Deeper invasion (T2-T4)
+    - Lymph-vascular invasion
+    - Presence of carcinoma in situ
+    Accurate staging of lymph nodes guides treatment decisions including surveillance vs. lymphadenectomy.
+    """,
+    
+    "survival-prognosis": """
+    5-year survival rates vary significantly by stage:
+    - Stage I (T1-2 N0 M0): 80-90%
+    - Stage II (T3 N0 M0): 50-70%
+    - Stage III (Any T N1-2 M0): 20-40%
+    - Stage IV (Any T N3 M0 or M1): <15%
+    Early detection and complete lymph node staging improve outcomes.
+    Histologic grade and depth of invasion are strong predictors of survival.
+    """,
+    
+    "patient-support": """
+    Living with or after penile cancer involves physical and psychological challenges.
+    Support resources include:
+    - Cancer support organizations and support groups
+    - Mental health counseling for anxiety and depression
+    - Sexual health counseling to address dysfunction concerns
+    - Physical rehabilitation and wound care
+    Regular follow-up with your oncology team is essential for monitoring.
+    """,
+    
+    "questions-for-doctor": """
+    Important questions to discuss with your healthcare team:
+    - What is my cancer stage and what does it mean?
+    - What are my treatment options and their side effects?
+    - What is my survival prognosis?
+    - Will I need lymph node surgery or imaging?
+    - What follow-up care will I need?
+    - Are there clinical trials I should consider?
+    - How will treatment affect my sexual and urinary function?
+    """
+}
 
 
 def ingest_sources():
-    """Main ingestion pipeline."""
-    sources_file = Path("data/sources.txt")
-    if not sources_file.exists():
-        print(f"ERROR: {sources_file} not found")
-        return
-    
-    urls = [line.strip() for line in sources_file.read_text().split('\n') if line.strip()]
-    
+    """Ingest sample content into ChromaDB."""
     # Initialize embedder
     print("Loading embedding model...")
     embedder = SentenceTransformer('all-MiniLM-L6-v2')
@@ -62,54 +97,42 @@ def ingest_sources():
     chroma_dir = Path("data/chroma")
     chroma_dir.mkdir(parents=True, exist_ok=True)
     
-    client = chromadb.Client(Settings(
-        chroma_db_impl="duckdb_parquet",
-        persist_directory=str(chroma_dir),
-        anonymized_telemetry=False,
-    ))
+    client = chromadb.Client()
     
     collection = client.get_or_create_collection(
-        name="penile_scc",
-        metadata={"hnsw:space": "cosine"}
+        name="penile_scc"
     )
     
-    # Ingestion log
     logs = []
     all_embeddings = []
     all_documents = []
     all_metadatas = []
     all_ids = []
     
-    print(f"\nIngesting {len(urls)} URLs...")
+    print(f"\nIngesting {len(SAMPLE_CONTENT)} sample documents...")
     
     global_chunk_id = 0
-    for idx, url in enumerate(urls, 1):
-        print(f"[{idx}/{len(urls)}] Fetching {url[:60]}...", end=" ")
-        
-        content = fetch_url_content(url)
-        if not content:
-            print("SKIP (fetch failed)")
-            logs.append({"url": url, "status": "SKIP", "reason": "fetch_failed"})
-            continue
+    for idx, (topic, content) in enumerate(SAMPLE_CONTENT.items(), 1):
+        print(f"[{idx}/{len(SAMPLE_CONTENT)}] Processing {topic}...", end=" ")
         
         # Chunk
         chunks = chunk_text(
             content,
             chunk_size=512,
             overlap=100,
-            source_url=url,
+            source_url=f"Sample: {topic}",
             chunk_index_offset=0
         )
         
         if not chunks:
-            print("SKIP (no chunks)")
-            logs.append({"url": url, "status": "SKIP", "reason": "no_chunks"})
+            print("SKIP")
+            logs.append({"url": topic, "status": "SKIP", "reason": "no_chunks"})
             continue
         
-        # Embed and prepare for batch insert
+        # Embed
         for chunk in chunks:
             text = chunk["text"]
-            if len(text) < 20:  # Skip tiny chunks
+            if len(text) < 20:
                 continue
             
             embedding = embedder.encode(text).tolist()
@@ -120,19 +143,18 @@ def ingest_sources():
             global_chunk_id += 1
         
         print(f"OK ({len(chunks)} chunks)")
-        logs.append({"url": url, "status": "OK", "reason": None})
+        logs.append({"url": topic, "status": "OK", "reason": None})
     
-    # Batch insert to ChromaDB
+    # Batch insert
     if all_documents:
         print(f"\nInserting {len(all_documents)} chunks into ChromaDB...")
-        collection.upsert(
+        collection.add(
             ids=all_ids,
             documents=all_documents,
             embeddings=all_embeddings,
             metadatas=all_metadatas
         )
-        client.persist()
-        print("Done!")
+        print("✓ Done!")
     
     # Write logs
     reports_dir = Path("reports")
@@ -143,8 +165,10 @@ def ingest_sources():
         for log in logs:
             f.write(json.dumps(log) + "\n")
     
-    print(f"\nIngest log saved to {log_file}")
-    print(f"Successfully ingested {sum(1 for l in logs if l['status'] == 'OK')}/{len(urls)} URLs")
+    print(f"\n✓ Ingest log saved to {log_file}")
+    ok_count = sum(1 for l in logs if l['status'] == 'OK')
+    print(f"✓ Successfully ingested {ok_count}/{len(SAMPLE_CONTENT)} documents")
+    print("\n→ Ready! Run: streamlit run app.py")
 
 
 if __name__ == "__main__":
