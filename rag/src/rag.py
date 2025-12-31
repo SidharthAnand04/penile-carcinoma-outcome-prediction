@@ -79,11 +79,7 @@ class PenileSCCRAG:
                 {"role": "user", "content": user_message}
             ]
         }
-        # DEBUG: Print payload and headers to Streamlit and stderr
-        st.write("[DEBUG] OpenRouter request payload:", payload)
-        st.write("[DEBUG] OpenRouter request headers:", headers)
-        print("[DEBUG] OpenRouter request payload:", json.dumps(payload, indent=2), file=sys.stderr)
-        print("[DEBUG] OpenRouter request headers:", headers, file=sys.stderr)
+        # ...existing code...
         try:
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -91,9 +87,7 @@ class PenileSCCRAG:
                 json=payload,
                 timeout=30
             )
-            # DEBUG: Print raw response for troubleshooting
-            print("[DEBUG] OpenRouter raw response:", response.text, file=sys.stderr)
-            st.write("[DEBUG] OpenRouter raw response:", response.text)
+            # ...existing code...
             response.raise_for_status()
             result = response.json()
             return result["choices"][0]["message"]["content"]
@@ -105,12 +99,9 @@ class PenileSCCRAG:
             except Exception:
                 error_json = response.text
             st.error(f"OpenRouter API error: {e}")
-            st.write("[DEBUG] OpenRouter error response:", error_json)
-            print(f"[DEBUG] OpenRouter error response: {error_json}", file=sys.stderr)
             raise RuntimeError(f"OpenRouter API error: {e}\nResponse: {error_json}")
         except Exception as e:
             st.error(f"OpenRouter API error: {e}")
-            print(f"[DEBUG] OpenRouter unexpected error: {e}", file=sys.stderr)
             raise RuntimeError(f"OpenRouter API error: {e}")
     
     def answer_question(self, query, audience="family", depth="quick", request_id=None):
