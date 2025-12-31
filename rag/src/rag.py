@@ -57,18 +57,18 @@ class PenileSCCRAG:
         
         return chunks
     
-    def call_openrouter(self, system_prompt, user_message, temperature=0.7, max_tokens=1024):
-        """Call OpenRouter API with proper headers."""
+    def call_openrouter(self, system_prompt, user_message, temperature=0.7, max_tokens=1024, request_id=None):
+        """Call OpenRouter API with proper headers and request tracking."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
+            # Add a custom header to identify the request source/location
+            "X-Request-Source": f"rag.py:call_openrouter{f'|id={request_id}' if request_id else ''}"
         }
-        
         if self.site_url:
             headers["HTTP-Referer"] = self.site_url
         if self.app_name:
             headers["X-Title"] = self.app_name
-        
         payload = {
             "model": self.model,
             "temperature": temperature,
@@ -78,7 +78,6 @@ class PenileSCCRAG:
                 {"role": "user", "content": user_message}
             ]
         }
-        
         try:
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -92,7 +91,7 @@ class PenileSCCRAG:
         except Exception as e:
             raise RuntimeError(f"OpenRouter API error: {e}")
     
-    def answer_question(self, query, audience="family", depth="quick"):
+    def answer_question(self, query, audience="family", depth="quick", request_id=None):
         """Generate RAG answer with citations."""
         # Retrieve
         chunks = self.retrieve(query, k=7)
@@ -138,7 +137,8 @@ class PenileSCCRAG:
             system_prompt=system_prompt,
             user_message=user_message,
             temperature=0.5,
-            max_tokens=2048
+            max_tokens=2048,
+            request_id=request_id
         )
         
         return {

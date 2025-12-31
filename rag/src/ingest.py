@@ -11,12 +11,7 @@ from src.split import chunk_text
 from src.db import get_client, ensure_collection_exists
 
 
-def load_urls(path=None):
-    # Always resolve to the correct sources.txt path relative to this file
-    if path is None:
-        path = Path(__file__).parent.parent / "data" / "sources.txt"
-    else:
-        path = Path(path)
+def load_urls(path="data/sources.txt"):
     with open(path, "r", encoding="utf-8") as f:
         return [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
