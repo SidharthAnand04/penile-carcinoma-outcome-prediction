@@ -67,14 +67,31 @@ Every answer includes citations to sources.
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Initialize RAG with auto-ingest fallback
-try:
-    rag = initialize_rag()
-    rag_ready = True
-    rag_error = None
-except Exception as e:
-    rag_ready = False
-    rag_error = str(e)
+
+# Initialize RAG with auto-ingest fallback and auto-recovery
+def try_initialize_rag_with_recovery():
+    try:
+        rag = initialize_rag()
+        return rag, True, None
+    except Exception as e:
+        rag_error = str(e)
+        # If error is due to missing collection or secrets parsing, try to auto-ingest and re-init
+        if (
+            "ChromaDB collection not found" in rag_error
+            or "Error parsing secrets file" in rag_error
+            or "OPENROUTER_API_KEY not set" in rag_error
+            or "Invalid date or number" in rag_error
+        ):
+            try:
+                from src.ingest import ingest_sources
+                ingest_sources()
+                rag = initialize_rag()
+                return rag, True, None
+            except Exception as e2:
+                return None, False, f"{rag_error}\nAuto-ingest failed: {e2}"
+        return None, False, rag_error
+
+rag, rag_ready, rag_error = try_initialize_rag_with_recovery()
 
 # Check if RAG is ready
 if not rag_ready:
